@@ -1,6 +1,7 @@
 /**
  * Author: Michael Graziano mjgrazia@bu.edu
  * Author: Sahan Bandara sahanb@bu.edu
+ * Adapted by: Hao Yu imhaoyu@bu.edu
  */
 
 #include <cstdlib>
@@ -35,13 +36,13 @@ int main(int argc, char **argv) {
     vector<double> *neighbor; // Holds the neighborhood table for the simulation
     double *vel;              // Holds the velocity of the particles
     double *acc;              // Holds the accleration of the particles
-    double L = 4096;           // Size of the simulation area
+    double L = 4096;           // length of the simulation box
     double Ekin, Epot;        // Holds the kinetic & potential energy of the system.
     double r_ij;              // Holds the distance between pairs of particles
     double mass = 1.0;        // Holds the mass of each atom
     double dt = 1E-12;        // Holds the time step
     double steps = 5000;      // Holds the maximum number of time steps to do
-    int np = 2048;               // Holds the number of particles
+    int np = 64;               // Holds the number of particles
     int nd = 2;               // Holds the number of dimensions
     int i, j, k, dim;         // General iterators
     
@@ -328,3 +329,5 @@ void calcVerlet (int np, int nd, double mass, double dt, double L, double &Ekin,
     }
     Ekin = 0.5 * Ekin/np;
 }
+
+
