@@ -8,3 +8,5 @@ EC526 Final Project Spring, 2022
 |Original    |✅|◻️|◻️|
 |Neighbor Map|◻️|◻️|◻️|
 |Neighbor Map + Cell List |◻️|◻️|◻️|
+
+Animation
