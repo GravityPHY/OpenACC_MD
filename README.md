@@ -1,10 +1,10 @@
 # MD_Parallelization
-EC526 Final Project Spring, 2022  
+EC526 Final Project Spring, 2022
 
 
 
 |            |Single Thread | OpenMP | OpenACC |
 |------------|--------------|--------|---|
-|Original    |✅|◻️|◻✅️|
-|Neighbor Map|◻️|◻️|◻️|◻️|
-  Animation
+|Original    |✅|◻️|◻️|
+|Neighbor Map|◻️|◻️|◻️|
+|Neighbor Map + Cell List |◻️|◻️|◻️|
