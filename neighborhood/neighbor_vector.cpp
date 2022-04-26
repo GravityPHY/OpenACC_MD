@@ -42,7 +42,7 @@ int main(int argc, char **argv) {
     double mass = 1.0;        // Holds the mass of each atom
     double dt = 0.005;        // Holds the time step
     int steps = 5000;         // Holds the maximum number of time steps to do
-    int np = 10;            // Holds the number of particles
+    int np = 20;            // Holds the number of particles
     int nd = 2;               // Holds the number of dimensions
     int i, j, k, dim;         // General iterators
 
@@ -112,20 +112,6 @@ int main(int argc, char **argv) {
          << scientific << setprecision(3) << dt << "\t"
          << resetiosflags(ios::scientific) << setprecision(15) << difference_in_seconds << endl;
 
-    // For the time being assuming 1 Dimension. Will need to update for multiple dimensions
-//    double avg_v = 0;
-//    for (i = 0; i < np; i++) {
-//        for (dim = 0; dim < nd; dim++) {
-//            avg_v += abs(vel[dim+i*nd]);
-//        }
-//    }
-//    avg_v /= np;
-//    cout << "Average Velocity = " << avg_v << endl;
-//    cout << "Neighbor Update Time can be < " << (R_skin-R_cut)/(avg_v*dt) << endl;
-//
-//    cout << "TEST COMPLETED!" << endl;
-
-
     // Clean memory
     delete [] pos;
     delete [] vel;
@@ -151,7 +137,7 @@ void setPositions (int np, int nd, int L, double *pos) {
         do {
             overlap = false;
             for (dim = 0; dim < nd; dim++) { // Scans through all dimensions of particle
-                pos[dim+i*nd] = L*static_cast<double>(rand())/static_cast<double>(RAND_MAX);
+                pos[dim+i*nd] = L/4 + (L*static_cast<double>(rand()))/(static_cast<double>(RAND_MAX)*2);
             }
             j = 0;
             while (j < i && !overlap) {
@@ -186,7 +172,7 @@ void createNeighborhood (int np, int nd, int L, double *pos, vector<int> *neighb
                 if (abs(dist_diff[dim]) > (L - R_skin - R_cut)) { // periodic boundary 
                     dist_diff[dim] = dist_diff[dim] >= 0 ? dist_diff[dim] - L : dist_diff[dim] + L;
                 }
-                in_range = (abs(dist_diff[dim]) <= R_skin);// ignore out range
+                in_range = (abs(dist_diff[dim]) <= R_skin);// only particles in R_skin
                 if (!in_range) break;
             }
             if (in_range) {
@@ -211,6 +197,7 @@ void calcAccel (int np, int nd, int L, double mass, double *pos, double *acc, do
     double fp;                   // Holds the coefficient for the force equation
     double finst[nd];            // Holds the instantanous force (in each direction)
     int i, j, dim;               // General iterators
+    double R_cut_2 = R_cut * R_cut;
     // Zero out force & Epot
     Epot = 0.0;
     for (i = 0; i < np; i++) {
@@ -227,15 +214,17 @@ void calcAccel (int np, int nd, int L, double mass, double *pos, double *acc, do
                 dist_diff[dim] = pos[dim + i*nd] - pos[dim + j*nd];
                 r2 += dist_diff[dim] * dist_diff[dim];
             }
-            r2_over = 1.0/r2;
-            r6_over = r2_over*r2_over*r2_over; // 1/((r2)^3)
-            fp = 48.0*r6_over*(r6_over-0.5)*r2_over;
-            for (dim = 0; dim < nd; dim++) {
-                finst[dim] = fp * dist_diff[dim];
-                acc[dim+i*nd] += finst[dim]/mass;
-                acc[dim+j*nd] -= finst[dim]/mass;
+            if (R_cut_2 > r2){ // particle within R_cut
+                r2_over = 1.0/r2;
+                r6_over = r2_over*r2_over*r2_over; // 1/((r2)^3)
+                fp = 48.0*r6_over*(r6_over-0.5)*r2_over;
+                for (dim = 0; dim < nd; dim++) {
+                    finst[dim] = fp * dist_diff[dim];
+                    acc[dim+i*nd] += finst[dim]/mass;
+                    // acc[dim+j*nd] -= finst[dim]/mass;
+                }
+                Epot += 4.0*(r6_over*r6_over-r6_over);
             }
-            Epot += 4.0*(r6_over*r6_over-r6_over);
             neighbor[i].pop_back();
         }
     }
