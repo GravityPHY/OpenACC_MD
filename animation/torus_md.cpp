@@ -54,6 +54,8 @@ int main(int argc, char **argv )
 
     setPositions(pos, L, N,  nd);
 
+    printf("Particle | Position (X) | Position (Y) | Velocity (X) | Velocity (Y) | Force. (X) | force (Y) |\n");
+
     for(int i = 0; i < N; i++)
         for(int mu = 0; mu < nd; mu++)
             vel[mu + nd*i] = 0.1*((double)rand()/(double)RAND_MAX - 1.0/2.0);
@@ -62,7 +64,7 @@ int main(int argc, char **argv )
 
     // calcForce (force, pos, L, N, nd);
 
-    printf("Particle | Position (X) | Position (Y) | Velocity (X) | Velocity (Y) | Force. (X) | force (Y) |\n");
+    //printf("Particle | Position (X) | Position (Y) | Velocity (X) | Velocity (Y) | Force. (X) | force (Y) |\n");
     for (int j = 0; j < N; j++)
     {
         printf(" %4d   ", j);
@@ -91,7 +93,7 @@ int main(int argc, char **argv )
 #if 1
         if(iter%skip == 0)
         {
-            printf("Particle | Position (X) | Position (Y) | Velocity (X) | Velocity (Y) | Force. (X) | force (Y) |\n");
+            //printf("Particle | Position (X) | Position (Y) | Velocity (X) | Velocity (Y) | Force. (X) | force (Y) |\n");
             for (int j = 0; j < N; j++)
             {
                 printf(" %4d   ", j);
