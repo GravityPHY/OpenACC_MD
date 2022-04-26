@@ -1,4 +1,5 @@
-MD = importdata('test.dat');
+clear all
+MD = importdata('test_neighbor.dat');
 num_particles = 10;
 len = length(MD.data(:,1));
 
@@ -59,40 +60,45 @@ for i = 1:len
     end        
 end
 
+xmax = max(MD.data(:,2)) + 1;
+ymax = max(MD.data(:,3)) + 1;
+xmin = min(MD.data(:,2)) - 1;
+ymin = min(MD.data(:,3)) - 1;
 num_frames = len / num_particles;
 
 for jello = 1:num_frames
     plot(particle0.x(jello),particle0.y(jello),'.','MarkerSize',20)
     hold on
     plot(particle1.x(jello),particle1.y(jello),'.','MarkerSize',20)
-    hold on
+    %hold on
     plot(particle2.x(jello),particle2.y(jello),'.','MarkerSize',20)
-    hold on
+    %hold on
     plot(particle3.x(jello),particle3.y(jello),'.','MarkerSize',20)
-    hold on
+    %hold on
     plot(particle4.x(jello),particle4.y(jello),'.','MarkerSize',20)
-    hold on
+    %hold on
     plot(particle5.x(jello),particle5.y(jello),'.','MarkerSize',20)
-    hold on
+    %hold on
     plot(particle6.x(jello),particle6.y(jello),'.','MarkerSize',20)
-    hold on
+    %hold on
     plot(particle7.x(jello),particle7.y(jello),'.','MarkerSize',20)
-    hold on
+    %hold on
     plot(particle8.x(jello),particle8.y(jello),'.','MarkerSize',20)
-    hold on
+    %hold on
     plot(particle9.x(jello),particle9.y(jello),'.','MarkerSize',20)
     grid on
-    xlim([-5,12]);
-    ylim([-5,12]);
-    title('Particle Movement','FontSize',20);
+    xlim([xmin,xmax]);
+    ylim([ymin,ymax]);
+    title('Particles Movement','FontSize',20);
+    hold off
     F(jello) = getframe; 
 end
 
-writerObj = VideoWriter('particle_movement.avi');
+writerObj = VideoWriter('neighbor_verctor_particle_movement.avi');
 open(writerObj);
 writeVideo(writerObj, F)
 close(writerObj);
-clear all
+
 
 
 
