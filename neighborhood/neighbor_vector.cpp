@@ -138,7 +138,7 @@ int main(int argc, char **argv) {
     delete [] pos;
     delete [] vel;
     delete [] acc;
-
+    delete [] neighbor;
     return 0;
 }
 

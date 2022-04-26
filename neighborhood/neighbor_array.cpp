@@ -19,11 +19,11 @@ using namespace std;
 // Function Prototypes:
 int main(int argc, char **argv );
 void setPositions (int np, int nd, int L, double *pos);
-void createNeighborhood (int np, int nd, int L, double *pos, vector<int> *neighbor);
-void calcAccel (int np, int nd, int L, double mass, double *pos, double *acc, double &Epot, vector<int> *neighbor);
+void createNeighborhood (int np, int nd, int L, double *pos, int *First, int *Edge);
+void calcAccel (int np, int nd, int L, double mass, double *pos, double *acc, double &Epot, int *First, int *Edge);
 void boundCond (int np, int nd, int L, double *pos);
 void calcVerlet (int np, int nd, double mass, double dt, int L, double &Ekin, double &Epot,
-                 double *pos, double *vel, double *acc, vector<int> *neighbor);
+                 double *pos, double *vel, double *acc, int *First, int *Edge);
 
 int main(int argc, char **argv) {
     /**
@@ -32,7 +32,9 @@ int main(int argc, char **argv) {
 
     // Variable Declartions
     double *pos;              // Holds the position of the particles
-    vector<int> *neighbor;    // Holds the neighborhood table for the simulation
+    // vector<int> *neighbor;    // Holds the neighborhood table for the simulation
+    int *First;               // Holds the index of Edge
+    int *Edge;                // Holds the neighborhood table
     double *vel;              // Holds the velocity of the particles
     double *acc;              // Holds the accleration of the particles
     int L = 4096;             // length of the simulation box
@@ -53,7 +55,9 @@ int main(int argc, char **argv) {
     pos = new double[nd*np];
     vel = new double[nd*np];
     acc = new double[nd*np];
-    neighbor = new vector<int>[np]; // array of vectors
+    // neighbor = new vector<int>[np]; // array of vectors
+    First = new int[np+1];
+    Edge = new int[np*np]; // max number of edges == np * np
 
     // Initialize Ekin
     Ekin = 0;
@@ -69,10 +73,10 @@ int main(int argc, char **argv) {
     setPositions(np, nd, L, pos);
 
     // Initialize neighborhood table 
-    createNeighborhood(np, nd, L, pos, neighbor);
+    createNeighborhood(np, nd, L, pos, First, Edge);
 
     // Initialize potential energy
-    calcAccel(np, nd, L, mass, pos, acc, Epot, neighbor);
+    calcAccel(np, nd, L, mass, pos, acc, Epot, First, Edge);
 
     // Initialize acceleration to zero
     for (i = 0; i < np; i++) {
@@ -109,7 +113,7 @@ int main(int argc, char **argv) {
             //     cout << endl;
             // }
         }
-        calcVerlet (np, nd, mass, dt, L, Ekin, Epot, pos, vel, acc, neighbor);
+        calcVerlet (np, nd, mass, dt, L, Ekin, Epot, pos, vel, acc, First, Edge);
     }
 
     end_time = chrono::steady_clock::now();
@@ -138,7 +142,8 @@ int main(int argc, char **argv) {
     delete [] pos;
     delete [] vel;
     delete [] acc;
-
+    delete [] First;
+    delete [] Edge;
     return 0;
 }
 
@@ -175,7 +180,7 @@ void setPositions (int np, int nd, int L, double *pos) {
     }
 }
 
-void createNeighborhood (int np, int nd, int L, double *pos, vector<int> *neighbor) {
+void createNeighborhood (int np, int nd, int L, double *pos, int *First, int *Edge) {
     /**
      * Used to create the neighborhood table for the simulation.
      */
@@ -184,11 +189,15 @@ void createNeighborhood (int np, int nd, int L, double *pos, vector<int> *neighb
     int i, j, dim;               // General iterators
     double dist_diff[nd];            // Difference in distance
     bool in_range;               // indicates if a particle is a neighbor
+    int EdgeIndex = 0;          
+    
+    First[0] = 0; 
 
-    // iterated over np*(np-1)/2 ordered pairs, 
-    // add to neighbor list if distance <= skin 
-    for (i = 0; i < np; i++) {
-        for(j = i+1; j < np; j++) {
+    // iterated over np*np ordered pairs, 
+    // add index of particle to Edge array if distance <= skin 
+    for(i=0; i<np; i++){
+        First[i+1] = First[i];
+        for (j=0; j< np; j++){
             for (dim = 0; dim < nd; dim++) {
                 dist_diff[dim] = pos[dim + i*nd] - pos[dim + j*nd];
                 if (abs(dist_diff[dim]) > (L - R_skin - R_cut)) { // periodic boundary 
@@ -198,16 +207,18 @@ void createNeighborhood (int np, int nd, int L, double *pos, vector<int> *neighb
                 if (!in_range) break;
             }
             if (in_range) {
-                neighbor[i].push_back(j);
-                neighbor[j].push_back(i);
+                Edge[EdgeIndex] = j;
+                EdgeIndex++;
+                First[i+1] +=1;
             }
         }
     }
+    Edge[EdgeIndex] = -1; // end indicator
 }
 
 
 
-void calcAccel (int np, int nd, int L, double mass, double *pos, double *acc, double &Epot, vector<int> *neighbor) {
+void calcAccel (int np, int nd, int L, double mass, double *pos, double *acc, double &Epot, int *First, int *Edge) {
     /**
      * Used to calculate the forces (aka acceleration) based on the interations
      * between particles.
@@ -218,7 +229,7 @@ void calcAccel (int np, int nd, int L, double mass, double *pos, double *acc, do
     double r2, r2_over, r6_over; // Holds the r^2, r2_over, r6_over for force calculations
     double fp;                   // Holds the coefficient for the force equation
     double finst[nd];            // Holds the instantanous force (in each direction)
-    int i, j, dim;               // General iterators
+    int i, j, e, dim;               // General iterators
     // Zero out force & Epot
     Epot = 0.0;
     for (i = 0; i < np; i++) {
@@ -226,12 +237,13 @@ void calcAccel (int np, int nd, int L, double mass, double *pos, double *acc, do
             acc[dim+i*nd] = 0.0;
         }
     }
+
     // Perform force & Epot calculation based on proximity
-    for (i = 0; i < np; i++){
-        while(!neighbor[i].empty()){
-            j = neighbor[i].back();
+    for (i=0; i<np; i++){
+        for (e = First[i]; e<First[i+1]; e++){ // neighbors of i
+            j = Edge[e]; // content of Edge array == index of neighbor 
             r2 = 0.0;
-            for (dim = 0; dim < nd; dim++){
+            for (dim=0; dim<nd; dim++){
                 dist_diff[dim] = pos[dim + i*nd] - pos[dim + j*nd];
                 r2 += dist_diff[dim] * dist_diff[dim];
             }
@@ -244,7 +256,6 @@ void calcAccel (int np, int nd, int L, double mass, double *pos, double *acc, do
                 acc[dim+j*nd] -= finst[dim]/mass;
             }
             Epot += 4.0*(r6_over*r6_over-r6_over);
-            neighbor[i].pop_back();
         }
     }
 }
@@ -271,7 +282,7 @@ void boundCond (int np, int nd, int L, double *pos) {
 }
 
 void calcVerlet (int np, int nd, double mass, double dt, int L, double &Ekin, double &Epot,
-                 double *pos, double *vel, double *acc, vector<int> *neighbor) {
+                 double *pos, double *vel, double *acc, int *First, int *Edge) {
     /**
      * Used to perform the Verlet velocity calculation (based off the leap frog method)
      */
@@ -287,8 +298,8 @@ void calcVerlet (int np, int nd, double mass, double dt, int L, double &Ekin, do
         }
     }
     boundCond (np, nd, L, pos);
-    createNeighborhood(np, nd, L, pos, neighbor);
-    calcAccel (np, nd, L, mass, pos, acc, Epot, neighbor);
+    createNeighborhood(np, nd, L, pos, First, Edge);
+    calcAccel (np, nd, L, mass, pos, acc, Epot, First, Edge);
     Ekin = 0.0;
     for (i = 0; i < np; i++) {
         for (dim = 0; dim < nd; dim++) {
