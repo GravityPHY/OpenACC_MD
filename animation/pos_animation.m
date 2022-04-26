@@ -81,9 +81,10 @@ for jello = 1:num_frames
     plot(particle8.x(jello),particle8.y(jello),'.','MarkerSize',20)
     hold on
     plot(particle9.x(jello),particle9.y(jello),'.','MarkerSize',20)
+    grid on
     xlim([-5,12]);
     ylim([-5,12]);
-    title('particle movement');
+    title('Particle Movement','FontSize',20);
     F(jello) = getframe; 
 end
 
@@ -91,7 +92,7 @@ writerObj = VideoWriter('particle_movement.avi');
 open(writerObj);
 writeVideo(writerObj, F)
 close(writerObj);
-
+clear all
 
 
 
