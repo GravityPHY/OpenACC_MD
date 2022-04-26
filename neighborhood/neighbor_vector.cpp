@@ -14,6 +14,8 @@
 #define R_cut 2.0
 #define R_skin 4.0
 
+#define PRINTRESULT 1
+
 using namespace std;
 
 // Function Prototypes:
@@ -35,14 +37,16 @@ int main(int argc, char **argv) {
     vector<int> *neighbor;    // Holds the neighborhood table for the simulation
     double *vel;              // Holds the velocity of the particles
     double *acc;              // Holds the accleration of the particles
-    int L = 4096;             // length of the simulation box
+    int L = 20;             // length of the simulation box
     double Ekin, Epot;        // Holds the kinetic & potential energy of the system.
     double mass = 1.0;        // Holds the mass of each atom
-    double dt = 1E-12;        // Holds the time step
+    double dt = 0.005;        // Holds the time step
     int steps = 5000;         // Holds the maximum number of time steps to do
-    int np = 1024;            // Holds the number of particles
+    int np = 10;            // Holds the number of particles
     int nd = 2;               // Holds the number of dimensions
     int i, j, k, dim;         // General iterators
+
+    int print_gap = steps / 100;
 
     // Chrono Time Variables
     chrono::time_point<chrono::steady_clock> begin_time, end_time;
@@ -86,29 +90,17 @@ int main(int argc, char **argv) {
     // Perform Verlet Velocity Calculations
 
     for (i = 0; i < steps; i++) {
-        if ((i+1)%100 == 0 || i == 0 || i == steps-1) {
-            // cout << "Step #" << i+1 << " --------------------" << endl;
-            // cout << "Potential Energy: " << Epot << "\tKinetic Energy: " << Ekin << "\tTotal Energy: " << Epot + Ekin << endl;
-            // cout << "Particle | Position (X) | Position (Y) | Velocity (X) | Velocity (Y) | Acceler. (X) | Acceler. (Y) |" << endl;
-            // cout << "Particle | Position (X) | Velocity (X) | Acceler. (X) |" << endl;
-            // for (j = 0; j < np; j++) {
-            //     cout << resetiosflags(ios::scientific) << setw(8) << j+1 << " |";
-            //     cout << scientific;
-            //     for (k = 0; k < 3; k++) {
-            //         for (dim = 0; dim < nd; dim++) {
-            //             if (k == 0) { // Position
-            //                 cout << setw(13) << pos[dim+j*nd];
-            //             } else if (k == 1) {
-            //                 cout << setw(13) << vel[dim+j*nd];
-            //             } else {
-            //                 cout << setw(13) << acc[dim+j*nd];
-            //             }
-            //             cout << " |";
-            //         }
-            //     }
-            //     cout << endl;
-            // }
+#ifdef PRINTRESULT
+        if ((i+1)%print_gap == 0 || i == 0 || i == steps-1) {
+            printf("Iter: %4d, Ekin: %14.8f, Epot: %14.8f\n", i, Ekin, Epot);
+            printf("Particle | Position (X) | Position (Y) | Velocity (X) | Velocity (Y) | Accel. (X) | Accel (Y) |\n");
+            for (j = 0; j < np; j++) {
+                printf(" %4d   ", j);
+                printf("%14.8f       %14.8f       %14.8f       %14.8f     %14.8f       %14.8f\n",
+                       pos[0+j*nd],pos[1+j*nd],vel[0+j*nd],vel[1+j*nd],acc[0+j*nd],acc[1+j*nd]);
+            }
         }
+#endif
         calcVerlet (np, nd, mass, dt, L, Ekin, Epot, pos, vel, acc, neighbor);
     }
 
