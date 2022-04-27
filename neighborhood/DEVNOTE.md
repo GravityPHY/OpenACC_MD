@@ -3,7 +3,11 @@
 ## Using `std::vector`
 implemented using `std::vector`, code in neighbor_vector.cpp
 
-compile with `g++ -std=c++11 neighbor_vector.cpp -o neighbor_vector`
+compile with 
+```sh
+g++ -std=c++11 neighbor_vector.cpp -o neighbor_vector
+```
+
 
 - Add `vector<int> *neighbor` as the array of vectors to hold the neighborhood table.
 - function `createNeighborhood` is called in every iteration of `calcVerlet` (and in initialize phase), to update the neighborhood table.  
@@ -15,7 +19,10 @@ compile with `g++ -std=c++11 neighbor_vector.cpp -o neighbor_vector`
 
 implemented using paired array, code in neighbor_array.cpp
 
-compile with `g++ -std=c++11 neighbor_array.cpp -o neighbor_array`
+compile with 
+```sh
+g++ -std=c++11 neighbor_array.cpp -o neighbor_array
+```
 
 - Add `int *First = new int[np+1]` as the array of index, whose content is the first index of the its neighbor in `Edge` array
 - Add `int *Edge = new int[np*np]` as the array of neighbor, here we use the largest possible number of edges as the space to store edges.

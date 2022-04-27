@@ -14,7 +14,7 @@
 #define R_cut 2.0
 #define R_skin 4.0
 
-#define PRINTRESULT 1
+// #define PRINTRESULT 1
 
 using namespace std;
 
@@ -37,12 +37,12 @@ int main(int argc, char **argv) {
     vector<int> *neighbor;    // Holds the neighborhood table for the simulation
     double *vel;              // Holds the velocity of the particles
     double *acc;              // Holds the accleration of the particles
-    int L = 20;             // length of the simulation box
+    int L = 4096;             // length of the simulation box
     double Ekin, Epot;        // Holds the kinetic & potential energy of the system.
     double mass = 1.0;        // Holds the mass of each atom
     double dt = 0.005;        // Holds the time step
     int steps = 5000;         // Holds the maximum number of time steps to do
-    int np = 20;            // Holds the number of particles
+    int np = 1024;            // Holds the number of particles
     int nd = 2;               // Holds the number of dimensions
     int i, j, k, dim;         // General iterators
 
@@ -88,12 +88,14 @@ int main(int argc, char **argv) {
     begin_time = chrono::steady_clock::now();
 
     // Perform Verlet Velocity Calculations
+#ifdef PRINTRESULT
+    printf("Particle | Position (X) | Position (Y) | Velocity (X) | Velocity (Y) | Accel. (X) | Accel (Y) |\n");
+#endif
 
     for (i = 0; i < steps; i++) {
 #ifdef PRINTRESULT
         if ((i+1)%print_gap == 0 || i == 0 || i == steps-1) {
-            printf("Iter: %4d, Ekin: %14.8f, Epot: %14.8f\n", i, Ekin, Epot);
-            printf("Particle | Position (X) | Position (Y) | Velocity (X) | Velocity (Y) | Accel. (X) | Accel (Y) |\n");
+            //printf("Iter: %4d, Ekin: %14.8f, Epot: %14.8f\n", i, Ekin, Epot);
             for (j = 0; j < np; j++) {
                 printf(" %4d   ", j);
                 printf("%14.8f       %14.8f       %14.8f       %14.8f     %14.8f       %14.8f\n",
