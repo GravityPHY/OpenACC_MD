@@ -198,6 +198,9 @@ void createNeighborhood (int np, int nd, int L, double *pos, int *First, int *Ed
     for(i=0; i<np; i++){
         First[i+1] = First[i];
         for (j=0; j< np; j++){
+            if (i == j) {
+                continue;
+            }
             for (dim = 0; dim < nd; dim++) {
                 dist_diff[dim] = pos[dim + i*nd] - pos[dim + j*nd];
                 if (abs(dist_diff[dim]) > (L - R_skin - R_cut)) { // periodic boundary 
