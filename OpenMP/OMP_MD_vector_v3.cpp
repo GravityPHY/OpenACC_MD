@@ -207,7 +207,7 @@ void createNeighborhood (int np, int nd, int L, double *pos, vector<int> *neighb
             }
             for (dim = 0; dim < nd; dim++) {
                 dist_diff[dim] = pos[dim + i*nd] - pos[dim + j*nd];
-                if (abs(dist_diff[dim]) > (L - R_skin - R_cut)) { // periodic boundary 
+                if (abs(dist_diff[dim]) > (L - R_skin)) { // periodic boundary 
                     dist_diff[dim] = dist_diff[dim] >= 0 ? dist_diff[dim] - L : dist_diff[dim] + L;
                 }
                 in_range = (abs(dist_diff[dim]) <= R_skin);// only particles in R_skin
@@ -255,6 +255,9 @@ void calcAccel (int np, int nd, int L, double mass, double *pos, double *acc, do
             r2 = 0.0;
             for (dim = 0; dim < nd; dim++){
                 dist_diff[dim] = pos[dim + i*nd] - pos[dim + j*nd];
+                if (abs(dist_diff[dim]) > (L - R_cut)) { // periodic boundary 
+                    dist_diff[dim] = dist_diff[dim] >= 0 ? dist_diff[dim] - L : dist_diff[dim] + L;
+                }
                 r2 += dist_diff[dim] * dist_diff[dim];
             }
             if (R_cut_2 > r2){ // particle within R_cut

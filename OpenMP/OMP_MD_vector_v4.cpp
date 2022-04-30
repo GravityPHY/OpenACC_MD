@@ -207,7 +207,7 @@ void createNeighborhood (int np, int nd, int L, double *pos, vector<int> *neighb
             }
             for (dim = 0; dim < nd; dim++) {
                 dist_diff[dim] = pos[dim + i*nd] - pos[dim + j*nd];
-                if (abs(dist_diff[dim]) > (L - R_skin - R_cut)) { // periodic boundary 
+                if (abs(dist_diff[dim]) > (L - R_skin)) { // periodic boundary 
                     dist_diff[dim] = dist_diff[dim] >= 0 ? dist_diff[dim] - L : dist_diff[dim] + L;
                 }
                 in_range = (abs(dist_diff[dim]) <= R_skin);// only particles in R_skin
@@ -255,6 +255,9 @@ void calcAccel (int np, int nd, int L, double mass, double *pos, double *acc, do
             r2 = 0.0;
             for (dim = 0; dim < nd; dim++){
                 dist_diff[dim] = pos[dim + i*nd] - pos[dim + j*nd];
+                if (abs(dist_diff[dim]) > (L - R_cut)) { // periodic boundary 
+                    dist_diff[dim] = dist_diff[dim] >= 0 ? dist_diff[dim] - L : dist_diff[dim] + L;
+                }
                 r2 += dist_diff[dim] * dist_diff[dim];
             }
             if (R_cut_2 > r2){ // particle within R_cut
@@ -305,13 +308,21 @@ void calcVerlet (int np, int nd, double mass, double dt, int L, double &Ekin, do
     double dt2 = 0.5 * dt; // Holds the half time step for the velocity calculation
     int i, dim;            // General iterators
 
-#pragma omp parallel for shared(vel,acc,pos) private(i,dim)
+#pragma omp parallel for shared(vel,acc) private(i,dim)
     for (i = 0; i < np; i++) {
         for (dim = 0; dim < nd; dim++) {
             vel[dim+i*nd] += acc[dim+i*nd] * dt2;
+            // pos[dim+i*nd] += vel[dim+i*nd] * dt;
+        }
+    }
+#pragma omp parallel for shared(vel,pos) private(i,dim)
+    for (i = 0; i < np; i++) {
+        for (dim = 0; dim < nd; dim++) {
+            // vel[dim+i*nd] += acc[dim+i*nd] * dt2;
             pos[dim+i*nd] += vel[dim+i*nd] * dt;
         }
     }
+
     
     boundCond (np, nd, L, pos);
     createNeighborhood(np, nd, L, pos, neighbor);
