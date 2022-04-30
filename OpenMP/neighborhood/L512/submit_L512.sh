@@ -2,10 +2,10 @@
 # The -l specifies that we are loading modules
 #
 ## Walltime limit
-#$ -l h_rt=24:00:00
+#$ -l h_rt=12:00:00
 #
 ## Give the job a name.
-#$ -N OMP_MD_vector_L4096
+#$ -N OMP_MD_vector_L512
 #
 ## Redirect error output to standard output
 #$ -j y
@@ -31,10 +31,10 @@ exec >  ${SGE_O_WORKDIR}/${JOB_NAME}-${JOB_ID}.scc.out 2>&1
 
 echo "Hello from process ${HOSTNAME}"
 
-for ((x = 4096; x<70000; x = x*2));do
+for ((x = 512; x<8200; x = x*2));do
     for ((y = 1;y <20; y = y*2));do
         echo "T=$y np= $x"
-        OMP_NUM_THREADS=$y ../OMP_MD_vector_v2 4096 $x &> v2_t${y}_L4096_np${x}.txt
+        OMP_NUM_THREADS=$y ../../OMP_MD_vector_v2 512 $x &> v2_t${y}_L512_np${x}.txt
     done
 done
 

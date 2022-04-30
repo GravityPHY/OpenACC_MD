@@ -5,7 +5,7 @@
 #$ -l h_rt=12:00:00
 #
 ## Give the job a name.
-#$ -N OMP_MD_vector_L512
+#$ -N OMP_MD_vector_L1024
 #
 ## Redirect error output to standard output
 #$ -j y
@@ -31,10 +31,10 @@ exec >  ${SGE_O_WORKDIR}/${JOB_NAME}-${JOB_ID}.scc.out 2>&1
 
 echo "Hello from process ${HOSTNAME}"
 
-for ((x = 512; x<8200; x = x*2));do
+for ((x = 1024; x<17000; x = x*2));do
     for ((y = 1;y <20; y = y*2));do
         echo "T=$y np= $x"
-        OMP_NUM_THREADS=$y ../OMP_MD_vector_v2 512 $x &> v2_t${y}_L512_np${x}.txt
+        OMP_NUM_THREADS=$y ../../OMP_MD_vector_v2 1024 $x &> v2_t${y}_L1024_np${x}.txt
     done
 done
 
