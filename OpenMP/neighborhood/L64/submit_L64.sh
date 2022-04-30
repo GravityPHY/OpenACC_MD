@@ -34,7 +34,7 @@ echo "Hello from process ${HOSTNAME}"
 for ((x = 64; x<600; x = x*2));do
     for ((y = 1;y <20; y = y * 2));do
         echo "T=$y np= $x"
-        OMP_NUM_THREADS=$y ../../OMP_MD_vector_v2 64 $x &> v2_t${y}_L64_np${x}.txt
+        OMP_NUM_THREADS=$y ../../OMP_MD_vector_v4 64 $x &> vector_t${y}_L64_np${x}.txt
     done
 done
 

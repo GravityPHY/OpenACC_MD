@@ -21,15 +21,15 @@ update `calcAccel`
 ## Neighborhood with vector
 
 ### OMP_MD_vector_v0
-no loop is implemented with omp parallel clause.
+For comparison
 
 ### OMP_MD_vector_v1
 fully implemented with omp parallel clause, not fine tuned.
 
-### OMP_MD_vector_v2
-final version, 
-data 
-result: 
+### ~~OMP_MD_vector_v2~~ **deprecated** 
+~~final version~~ 
+
+data result: 
 
 | L    | np   | 1    | 2    | 4    | 8    | 16   | 
 |------|------|------|------|------|------|------|
@@ -65,8 +65,11 @@ result:
 |      |16384 |15786.834208298|7992.484435364|4057.701719598|2145.319107067|1073.528508838|
 
 
-### OMP_MD_vector_v2
-fixed one bug related to R_skin and R_cut
+### OMP_MD_vector_v3
+Fixed one bug related to R_skin and R_cut
 
-### OMP_MD_vector_v2
-update `calcVerlet`
+**Current Best Version**
+
+### OMP_MD_vector_v4
+- update `calcVerlet` 
+- result is not as good as v3

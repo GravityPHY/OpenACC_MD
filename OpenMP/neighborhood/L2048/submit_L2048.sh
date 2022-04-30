@@ -31,10 +31,10 @@ exec >  ${SGE_O_WORKDIR}/${JOB_NAME}-${JOB_ID}.scc.out 2>&1
 
 echo "Hello from process ${HOSTNAME}"
 
-for ((x = 2048; x<33000; x = x*2));do
+for ((x = 2048; x<20000; x = x*2));do
     for ((y = 1;y <20; y = y*2));do
         echo "T=$y np= $x"
-        OMP_NUM_THREADS=$y ../../OMP_MD_vector_v2 2048 $x &> v2_t${y}_L2048_np${x}.txt
+        OMP_NUM_THREADS=$y ../../OMP_MD_vector_v4 2048 $x &> vector_t${y}_L2048_np${x}.txt
     done
 done
 
