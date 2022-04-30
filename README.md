@@ -8,6 +8,5 @@ EC526 Final Project Spring, 2022
 |Original    |✅|✅|✅|
 |Neighbor Map (Vector)|✅|✅|✅|
 |Neighbor Map (Array)|✅|◻️|◻️|
-|Neighbor Map + Cell List |◻️|◻️|◻️|
 
 Animation ✅
