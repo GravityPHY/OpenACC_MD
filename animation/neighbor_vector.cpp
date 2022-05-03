@@ -40,7 +40,7 @@ int main(int argc, char **argv) {
     double mass = 1.0;        // Holds the mass of each atom
     double dt = 0.005;        // Holds the time step
     int steps = 10000;         // Holds the maximum number of time steps to do
-    int np = 10;            // Holds the number of particles
+    int np = 40;            // Holds the number of particles
     int nd = 2;               // Holds the number of dimensions
     int i, j, k, dim;         // General iterators
 
