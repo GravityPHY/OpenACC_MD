@@ -10,11 +10,15 @@
 #include <chrono>
 #include <vector>
 #include <cmath>
+#include <omp.h>
+#include <cstring>
+
 
 #define R_cut 2.0
 #define R_skin 4.0
+#define THREADS 2
 
-// #define PRINTRESULT 1
+#define PRINTRESULT 1
 
 using namespace std;
 
@@ -26,6 +30,8 @@ void calcAccel (int np, int nd, int L, double mass, double *pos, double *acc, do
 void boundCond (int np, int nd, int L, double *pos);
 void calcVerlet (int np, int nd, double mass, double dt, int L, double &Ekin, double &Epot,
                  double *pos, double *vel, double *acc, vector<int> *neighbor);
+void detect_threads_setting();
+
 
 int main(int argc, char **argv) {
     /**
@@ -37,7 +43,7 @@ int main(int argc, char **argv) {
     vector<int> *neighbor;    // Holds the neighborhood table for the simulation
     double *vel;              // Holds the velocity of the particles
     double *acc;              // Holds the accleration of the particles
-    int L = 4096;             // length of the simulation box
+    int L = 1024;             // length of the simulation box
     double Ekin, Epot;        // Holds the kinetic & potential energy of the system.
     double mass = 1.0;        // Holds the mass of each atom
     double dt = 0.005;        // Holds the time step
@@ -47,6 +53,27 @@ int main(int argc, char **argv) {
     int i, j, k, dim;         // General iterators
 
     int print_gap = steps / 100;
+
+    // double *pos_cp;
+    // pos_cp = new double[nd*np];
+
+
+    if(argc != 3)
+    {
+        printf("Please provide L and np, \n");
+        return -1;
+    }
+    if(argc == 3){
+        L = atoi(argv[1]);
+        np  = atoi(argv[2]);
+        if(L*L < 4*np){
+            printf("Too many particles");
+            return -1;
+        }
+        else{
+            printf("L: %d, np: %d\n", L, np);
+        }
+    }
 
     // Chrono Time Variables
     chrono::time_point<chrono::steady_clock> begin_time, end_time;
@@ -62,6 +89,8 @@ int main(int argc, char **argv) {
     // Initialize Ekin
     Ekin = 0;
 
+    detect_threads_setting();
+
     // Initialize velocities
     for (i = 0; i < np; i++) {
         for (dim = 0; dim < nd; dim++) {
@@ -71,6 +100,7 @@ int main(int argc, char **argv) {
 
     // Initialize positions
     setPositions(np, nd, L, pos);
+    // memcpy(pos_cp, pos, sizeof(double) * np*nd);
 
     // Initialize neighborhood table 
     createNeighborhood(np, nd, L, pos, neighbor);
@@ -94,8 +124,8 @@ int main(int argc, char **argv) {
 
     for (i = 0; i < steps; i++) {
 #ifdef PRINTRESULT
-        if ((i+1)%print_gap == 0 || i == 0 || i == steps-1) {
-            //printf("Iter: %4d, Ekin: %14.8f, Epot: %14.8f\n", i, Ekin, Epot);
+        if (i == 0 || i == steps-1) {
+        //if ((i+1)%print_gap == 0 || i == 0 || i == steps-1) {
             for (j = 0; j < np; j++) {
                 printf(" %4d   ", j);
                 printf("%14.8f       %14.8f       %14.8f       %14.8f     %14.8f       %14.8f\n",
@@ -110,8 +140,8 @@ int main(int argc, char **argv) {
     difference_in_time = end_time - begin_time;
     difference_in_seconds = difference_in_time.count();
 
-    cout << np << "\t" << L << "\t"
-         << scientific << setprecision(3) << dt << "\t"
+    cout << "Result: " << np << "\t" << L << "\t" 
+         << scientific << setprecision(3) << dt << "\t" 
          << resetiosflags(ios::scientific) << setprecision(15) << difference_in_seconds << endl;
 
     // Clean memory
@@ -167,11 +197,17 @@ void createNeighborhood (int np, int nd, int L, double *pos, vector<int> *neighb
 
     // iterated over np*(np-1)/2 ordered pairs, 
     // add to neighbor list if distance <= skin 
+#pragma omp parallel private(i,j,dim,dist_diff,in_range) shared(pos, neighbor)
+{
+#pragma omp for 
     for (i = 0; i < np; i++) {
-        for(j = i+1; j < np; j++) {
+        for(j = 0; j < np; j++) {
+            if (i == j) {
+                continue;
+            }
             for (dim = 0; dim < nd; dim++) {
                 dist_diff[dim] = pos[dim + i*nd] - pos[dim + j*nd];
-                if (abs(dist_diff[dim]) > (L - R_skin - R_cut)) { // periodic boundary 
+                if (abs(dist_diff[dim]) > (L - R_skin)) { // periodic boundary 
                     dist_diff[dim] = dist_diff[dim] >= 0 ? dist_diff[dim] - L : dist_diff[dim] + L;
                 }
                 in_range = (abs(dist_diff[dim]) <= R_skin);// only particles in R_skin
@@ -179,13 +215,12 @@ void createNeighborhood (int np, int nd, int L, double *pos, vector<int> *neighb
             }
             if (in_range) {
                 neighbor[i].push_back(j);
-                neighbor[j].push_back(i);
+                // neighbor[j].push_back(i);
             }
         }
     }
 }
-
-
+}
 
 void calcAccel (int np, int nd, int L, double mass, double *pos, double *acc, double &Epot, vector<int> *neighbor) {
     /**
@@ -201,19 +236,28 @@ void calcAccel (int np, int nd, int L, double mass, double *pos, double *acc, do
     int i, j, dim;               // General iterators
     double R_cut_2 = R_cut * R_cut;
     // Zero out force & Epot
-    Epot = 0.0;
+    double local_Epot = 0.0;
+
+#pragma omp parallel for private(i,dim)
     for (i = 0; i < np; i++) {
         for (dim = 0; dim < nd; dim++) {
             acc[dim+i*nd] = 0.0;
         }
     }
+
     // Perform force & Epot calculation based on proximity
+#pragma omp parallel for private(i, r2, j, dim, dist_diff, r2_over, r6_over, fp, finst) \
+        shared(neighbor, pos)\
+        reduction(+:local_Epot)
     for (i = 0; i < np; i++){
         while(!neighbor[i].empty()){
             j = neighbor[i].back();
             r2 = 0.0;
             for (dim = 0; dim < nd; dim++){
                 dist_diff[dim] = pos[dim + i*nd] - pos[dim + j*nd];
+                if (abs(dist_diff[dim]) > (L - R_cut)) { // periodic boundary 
+                    dist_diff[dim] = dist_diff[dim] >= 0 ? dist_diff[dim] - L : dist_diff[dim] + L;
+                }
                 r2 += dist_diff[dim] * dist_diff[dim];
             }
             if (R_cut_2 > r2){ // particle within R_cut
@@ -223,13 +267,13 @@ void calcAccel (int np, int nd, int L, double mass, double *pos, double *acc, do
                 for (dim = 0; dim < nd; dim++) {
                     finst[dim] = fp * dist_diff[dim];
                     acc[dim+i*nd] += finst[dim]/mass;
-                    // acc[dim+j*nd] -= finst[dim]/mass;
                 }
-                Epot += 4.0*(r6_over*r6_over-r6_over);
+                local_Epot += 4.0*(r6_over*r6_over-r6_over);
             }
             neighbor[i].pop_back();
         }
     }
+    Epot = local_Epot;
 }
 
 void boundCond (int np, int nd, int L, double *pos) {
@@ -240,6 +284,7 @@ void boundCond (int np, int nd, int L, double *pos) {
     // Variable Declaration
     int i, dim; // General Iterators
 
+#pragma omp parallel for private(i,dim) shared(pos)
     for (i = 0; i < np; i++) {
         for (dim = 0; dim < nd; dim++) {
             if (pos[dim+i*nd] < 0) { // Particle has exited the lower boundary.
@@ -263,23 +308,63 @@ void calcVerlet (int np, int nd, double mass, double dt, int L, double &Ekin, do
     double dt2 = 0.5 * dt; // Holds the half time step for the velocity calculation
     int i, dim;            // General iterators
 
+#pragma omp parallel for shared(vel,acc,pos) private(i,dim)
     for (i = 0; i < np; i++) {
         for (dim = 0; dim < nd; dim++) {
             vel[dim+i*nd] += acc[dim+i*nd] * dt2;
             pos[dim+i*nd] += vel[dim+i*nd] * dt;
         }
     }
+    
     boundCond (np, nd, L, pos);
     createNeighborhood(np, nd, L, pos, neighbor);
     calcAccel (np, nd, L, mass, pos, acc, Epot, neighbor);
-    Ekin = 0.0;
+    double local_Ekin = 0.0;
+#pragma omp parallel for private(i, dim) shared(vel,acc)
     for (i = 0; i < np; i++) {
         for (dim = 0; dim < nd; dim++) {
             vel[dim+i*nd] += acc[dim+i*nd] * dt2;
-            Ekin += vel[dim+i*nd] * vel[dim+i*nd];
         }
     }
-    Ekin = 0.5 * Ekin/np;
+#pragma omp parallel for private(i, dim) reduction(+:local_Ekin)
+    for (i = 0; i < np; i++) {
+        for (dim = 0; dim < nd; dim++) {
+            // vel[dim+i*nd] += acc[dim+i*nd] * dt2;
+            local_Ekin += vel[dim+i*nd] * vel[dim+i*nd];
+        }
+    }
+    Ekin = 0.5 * local_Ekin/np;
 }
 
 
+
+void detect_threads_setting()
+{
+    long int i, ognt;
+
+    /* Find out how many threads OpenMP thinks it is wants to use */
+#pragma omp parallel for
+    for(i=0; i<1; i++) {
+        ognt = omp_get_num_threads();
+    }
+
+    printf("omp's default number of threads is %d\n", ognt);
+
+    /* If this is illegal (0 or less), default to the "#define THREADS"
+        value that is defined above */
+    if (ognt <= 0) {
+        if (THREADS != ognt) {
+            printf("Overriding with #define THREADS value %d\n", THREADS);
+            ognt = THREADS;
+        }
+    }
+
+    omp_set_num_threads(ognt);
+
+    /* Once again ask OpenMP how many threads it is going to use */
+#pragma omp parallel for
+    for(i=0; i<1; i++) {
+        ognt = omp_get_num_threads();
+    }
+    printf("Using %d threads for OpenMP\n", ognt);
+}

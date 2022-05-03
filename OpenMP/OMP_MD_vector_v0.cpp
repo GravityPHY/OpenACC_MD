@@ -14,7 +14,8 @@
 #define R_cut 2.0
 #define R_skin 4.0
 
-// #define PRINTRESULT 1
+
+#define PRINTRESULT 1
 
 using namespace std;
 
@@ -26,6 +27,7 @@ void calcAccel (int np, int nd, int L, double mass, double *pos, double *acc, do
 void boundCond (int np, int nd, int L, double *pos);
 void calcVerlet (int np, int nd, double mass, double dt, int L, double &Ekin, double &Epot,
                  double *pos, double *vel, double *acc, vector<int> *neighbor);
+
 
 int main(int argc, char **argv) {
     /**
@@ -48,6 +50,23 @@ int main(int argc, char **argv) {
 
     int print_gap = steps / 100;
 
+    if(argc != 3)
+    {
+        printf("Please provide L and np, \n");
+        return -1;
+    }
+    if(argc == 3){
+        L = atoi(argv[1]);
+        np  = atoi(argv[2]);
+        if(L*L < 4*np){
+            printf("Too many particles");
+            return -1;
+        }
+        else{
+            printf("L: %d, np: %d\n", L, np);
+        }
+    }
+
     // Chrono Time Variables
     chrono::time_point<chrono::steady_clock> begin_time, end_time;
     chrono::duration<double> difference_in_time;
@@ -61,6 +80,8 @@ int main(int argc, char **argv) {
 
     // Initialize Ekin
     Ekin = 0;
+
+    // detect_threads_setting();
 
     // Initialize velocities
     for (i = 0; i < np; i++) {
@@ -94,8 +115,8 @@ int main(int argc, char **argv) {
 
     for (i = 0; i < steps; i++) {
 #ifdef PRINTRESULT
-        if ((i+1)%print_gap == 0 || i == 0 || i == steps-1) {
-            //printf("Iter: %4d, Ekin: %14.8f, Epot: %14.8f\n", i, Ekin, Epot);
+        if (i == 0 || i == steps-1) {
+        //if ((i+1)%print_gap == 0 || i == 0 || i == steps-1) {
             for (j = 0; j < np; j++) {
                 printf(" %4d   ", j);
                 printf("%14.8f       %14.8f       %14.8f       %14.8f     %14.8f       %14.8f\n",
@@ -167,11 +188,15 @@ void createNeighborhood (int np, int nd, int L, double *pos, vector<int> *neighb
 
     // iterated over np*(np-1)/2 ordered pairs, 
     // add to neighbor list if distance <= skin 
+
     for (i = 0; i < np; i++) {
-        for(j = i+1; j < np; j++) {
+        for(j = 0; j < np; j++) {
+            if (i == j) {
+                continue;
+            }
             for (dim = 0; dim < nd; dim++) {
                 dist_diff[dim] = pos[dim + i*nd] - pos[dim + j*nd];
-                if (abs(dist_diff[dim]) > (L - R_skin - R_cut)) { // periodic boundary 
+                if (abs(dist_diff[dim]) > (L - R_skin)) { // periodic boundary 
                     dist_diff[dim] = dist_diff[dim] >= 0 ? dist_diff[dim] - L : dist_diff[dim] + L;
                 }
                 in_range = (abs(dist_diff[dim]) <= R_skin);// only particles in R_skin
@@ -179,7 +204,7 @@ void createNeighborhood (int np, int nd, int L, double *pos, vector<int> *neighb
             }
             if (in_range) {
                 neighbor[i].push_back(j);
-                neighbor[j].push_back(i);
+                // neighbor[j].push_back(i);
             }
         }
     }
@@ -201,12 +226,14 @@ void calcAccel (int np, int nd, int L, double mass, double *pos, double *acc, do
     int i, j, dim;               // General iterators
     double R_cut_2 = R_cut * R_cut;
     // Zero out force & Epot
-    Epot = 0.0;
+    double local_Epot = 0.0;
+
     for (i = 0; i < np; i++) {
         for (dim = 0; dim < nd; dim++) {
             acc[dim+i*nd] = 0.0;
         }
     }
+
     // Perform force & Epot calculation based on proximity
     for (i = 0; i < np; i++){
         while(!neighbor[i].empty()){
@@ -223,13 +250,15 @@ void calcAccel (int np, int nd, int L, double mass, double *pos, double *acc, do
                 for (dim = 0; dim < nd; dim++) {
                     finst[dim] = fp * dist_diff[dim];
                     acc[dim+i*nd] += finst[dim]/mass;
-                    // acc[dim+j*nd] -= finst[dim]/mass;
                 }
-                Epot += 4.0*(r6_over*r6_over-r6_over);
+                local_Epot += 4.0*(r6_over*r6_over-r6_over);
             }
             neighbor[i].pop_back();
         }
     }
+
+    Epot = local_Epot;
+    
 }
 
 void boundCond (int np, int nd, int L, double *pos) {
@@ -269,17 +298,17 @@ void calcVerlet (int np, int nd, double mass, double dt, int L, double &Ekin, do
             pos[dim+i*nd] += vel[dim+i*nd] * dt;
         }
     }
+
     boundCond (np, nd, L, pos);
     createNeighborhood(np, nd, L, pos, neighbor);
     calcAccel (np, nd, L, mass, pos, acc, Epot, neighbor);
-    Ekin = 0.0;
+    double local_Ekin = 0.0;
+
     for (i = 0; i < np; i++) {
         for (dim = 0; dim < nd; dim++) {
             vel[dim+i*nd] += acc[dim+i*nd] * dt2;
-            Ekin += vel[dim+i*nd] * vel[dim+i*nd];
+            local_Ekin += vel[dim+i*nd] * vel[dim+i*nd];
         }
     }
-    Ekin = 0.5 * Ekin/np;
+    Ekin = 0.5 * local_Ekin/np;
 }
-
-
