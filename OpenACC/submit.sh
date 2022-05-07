@@ -2,10 +2,10 @@
 # The -l specifies that we are loading modules
 #
 ## Walltime limit
-#$ -l h_rt=12:00:00
+#$ -l h_rt=12:30:00
 #
 ## Give the job a name.
-#$ -N np
+#$ -N OpenACC
 #
 ## Redirect error output to standard output
 #$ -j y
@@ -25,5 +25,10 @@
 module load pgi
 module load gcc
 
-pgc++ -std=c++11 -Minfo=accel -acc -ta=tesla OpenACC_basic_md.cpp -o  openACC
-./openACC
+
+pgc++ -std=c++11 -Minfo=accel -acc -ta=tesla OpenACC.cpp -o OPENACC
+./OPENACC 32768
+
+
+exit
+
